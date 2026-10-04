@@ -40,7 +40,7 @@ Le script affiche les résultats dans la console, section par section, et enregi
 
 ## Outils
 
-Python (pandas, matplotlib) · Power BI (Power Query, DAX) · HTML / JavaScript
+Python (pandas, matplotlib) · Power BI (Power Query, DAX) · HTML / JavaScript · IA générative (Claude)
 
 ---
 Mehdi Graoui · Sales Analyst
