@@ -2,7 +2,7 @@
 
 Étude de cas *Sales Analysis* sur les ventes B2B d'un distributeur de modèles réduits (janvier 2003 – mai 2005) : chiffre d'affaires, saisonnalité, marchés, clients, gammes, références et écart au prix catalogue.
 
-👉 **[Ouvrir le tableau de bord interactif](https://mehdigraoui75-art.github.io/analyse_ventes/)**
+👉 **[Voir le projet en ligne](https://mehdigraoui75-art.github.io/analyse_ventes/)** : étude, tableau de bord interactif, rapport Power BI et code Python.
 
 ## Principaux résultats
 
@@ -15,7 +15,8 @@
 
 | Fichier | Description |
 |---|---|
-| `index.html` | Tableau de bord interactif (3 pages, filtres par année, territoire et gamme) |
+| `index.html` | Page d'accueil du projet en ligne |
+| `tableau-de-bord.html` | Tableau de bord interactif (3 pages, filtres par année, territoire et gamme) |
 | `analyse_sample_sales_graoui.pdf` | Étude complète : analyse, tableaux, graphiques et recommandations |
 | `analyse_sample_sales_graoui.py` | Script Python qui reproduit tous les chiffres et graphiques de l'étude |
 | `analyse_sample_sales_graoui.pbix` | Rapport Power BI (Power Query, DAX) |
