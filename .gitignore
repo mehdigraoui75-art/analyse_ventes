@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Graphiques générés par analyse_sample_sales_graoui.py
+figure*.png
+
+# Fichiers système
+.DS_Store
