@@ -59,13 +59,14 @@ ul{padding-left:18px;margin:8px 0 0}
 <script>
 const $=id=>document.getElementById(id);
 const eur=(n,d=0)=>n.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:d,minimumFractionDigits:d});
-let mon=null, historique=[];
+let mon=null, historique=[], dernierT0=null;
 function lire(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
 
 function etat(){
   const e=lire("mvp-enchere");
   if(!e){$("vide").classList.remove("hidden");$("live").classList.add("hidden");return null}
   $("vide").classList.add("hidden");$("live").classList.remove("hidden");
+  if(e.t0!==dernierT0){dernierT0=e.t0;historique=[];$("histo").innerHTML='<li class="note">Aucune offre envoyée.</li>';$("msg").textContent=""}
   const p=e.profil, prog=Math.min(1,(Date.now()-e.t0)/e.dureeMs), clos=prog>=1;
   const reste=Math.round((1-prog)*48*3600);
   $("timer").textContent=clos?"Enchère close":[reste/3600|0,(reste%3600)/60|0,reste%60].map(x=>String(x).padStart(2,"0")).join(":");
@@ -80,6 +81,7 @@ function etat(){
     `<div>Référence banque<b>${eur(e.ref,2)}</b></div>`+
     `<div>Votre rang<b>${mon==null?"—":rang+" / "+(concurrents.length+1)}</b></div>`;
   $("envoyer").disabled=$("battre").disabled=clos;
+  if(clos){$("msg").className="msg err";$("msg").textContent="Enchère close : plus aucune offre n'est acceptée."}
   return {e,meilleure,clos};
 }
 function envoyer(valeur){

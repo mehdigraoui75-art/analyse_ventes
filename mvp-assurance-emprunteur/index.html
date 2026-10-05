@@ -88,6 +88,16 @@ tr.best td{background:#eef7f1}
   </table>
   <p style="margin-top:14px"><button class="ghost" id="reset" type="button">Nouvelle simulation</button></p>
 </div>
+<div class="card" id="humain">
+  <h2>Jouer l'assureur (optionnel)</h2>
+  <p class="note">Mettez-vous à la place d'un assureur : proposez un prix pour remporter le client. Un prix ne peut que baisser. (La page <code>assureur.html</code> propose la même chose dans un second onglet.)</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <div><label for="hprix">Votre mensualité (€/mois)</label><input id="hprix" type="number" step="0.01" min="1" style="width:180px"></div>
+    <button id="henvoyer" type="button">Envoyer l'offre</button>
+    <button id="hbattre" class="ghost" type="button">Battre la meilleure de 1 €</button>
+  </div>
+  <p class="note" id="hmsg" style="margin-top:10px"></p>
+</div>
 </section>
 </main>
 
@@ -114,7 +124,7 @@ function tauxBase(p){
 }
 const mensualite=(p,taux)=>p.capital*taux/12;
 
-let timerId=null;
+let timerId=null, courant=null, humainMem=null;
 
 function demarrer(p){
   clearInterval(timerId);
@@ -140,6 +150,7 @@ function demarrer(p){
   const t0=Date.now();
   // Partage avec la vue assureur (assureur.html) via localStorage : l'enchère est publiée, l'offre de l'assureur humain est relue.
   try{localStorage.removeItem("mvp-offre-assureur")}catch(e){}
+  humainMem=null; $("hmsg").textContent="";
   function tick(){
     const prog=Math.min(1,(Date.now()-t0)/(DUREE_SIM_S*1000));
     encheres.forEach(e=>{
@@ -151,6 +162,9 @@ function demarrer(p){
     });
     let humain=null;
     try{humain=JSON.parse(localStorage.getItem("mvp-offre-assureur")||"null")}catch(e){}
+    humain=humain||humainMem;
+    courant={meilleure:Math.min(...encheres.map(e=>e.prix)),clos:prog>=1,mois};
+    $("henvoyer").disabled=$("hbattre").disabled=courant.clos;
     const tous=humain?[...encheres,{nom:humain.nom+" (vue assureur)",prix:humain.prix,baisses:humain.baisses}]:encheres;
     const tri=[...tous].sort((a,b)=>a.prix-b.prix);
     try{localStorage.setItem("mvp-enchere",JSON.stringify({profil:p,mois,ref,t0,dureeMs:DUREE_SIM_S*1000,
@@ -182,7 +196,19 @@ $("form").addEventListener("submit",ev=>{
   try{localStorage.setItem("mvp-profil",JSON.stringify(p))}catch(e){}
   demarrer(p);
 });
+function offreHumaine(valeur){
+  const m=$("hmsg"); m.style.color="var(--warn)";
+  if(!courant||courant.clos){m.textContent="L'enchère est close.";return}
+  if(!(valeur>0)){m.textContent="Saisissez un prix valide.";return}
+  if(humainMem&&valeur>=humainMem.prix){m.textContent="Refusé : votre prix actuel est "+eur(humainMem.prix)+"/mois, il ne peut que baisser.";return}
+  humainMem={nom:"Votre Assurance",prix:valeur,baisses:(humainMem?humainMem.baisses:0)+1};
+  try{localStorage.setItem("mvp-offre-assureur",JSON.stringify(humainMem))}catch(e){}
+  m.style.color="var(--ok)"; m.textContent="Offre enregistrée : "+valeur.toFixed(2)+" €/mois."; $("hprix").value="";
+}
+$("henvoyer").addEventListener("click",()=>offreHumaine(+$("hprix").value));
+$("hbattre").addEventListener("click",()=>{if(courant)offreHumaine(Math.floor((courant.meilleure-1)*100)/100)});
 $("reset").addEventListener("click",()=>{
+  try{localStorage.removeItem("mvp-enchere");localStorage.removeItem("mvp-offre-assureur")}catch(e){}
   clearInterval(timerId);
   $("step2").classList.add("hidden");$("step1").classList.remove("hidden");
 });
