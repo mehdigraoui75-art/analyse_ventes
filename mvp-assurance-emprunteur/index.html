@@ -138,6 +138,8 @@ function demarrer(p){
   $("step2").classList.remove("hidden");
 
   const t0=Date.now();
+  // Partage avec la vue assureur (assureur.html) via localStorage : l'enchère est publiée, l'offre de l'assureur humain est relue.
+  try{localStorage.removeItem("mvp-offre-assureur")}catch(e){}
   function tick(){
     const prog=Math.min(1,(Date.now()-t0)/(DUREE_SIM_S*1000));
     encheres.forEach(e=>{
@@ -147,7 +149,12 @@ function demarrer(p){
       const part=n/e.paliers.length;
       e.prix=e.depart-(e.depart-e.plancher)*Math.pow(part,0.8);
     });
-    const tri=[...encheres].sort((a,b)=>a.prix-b.prix);
+    let humain=null;
+    try{humain=JSON.parse(localStorage.getItem("mvp-offre-assureur")||"null")}catch(e){}
+    const tous=humain?[...encheres,{nom:humain.nom+" (vue assureur)",prix:humain.prix,baisses:humain.baisses}]:encheres;
+    const tri=[...tous].sort((a,b)=>a.prix-b.prix);
+    try{localStorage.setItem("mvp-enchere",JSON.stringify({profil:p,mois,ref,t0,dureeMs:DUREE_SIM_S*1000,
+      offres:encheres.map(e=>({nom:e.nom,prix:e.prix}))}))}catch(e){}
     const reste=Math.round((1-prog)*48*3600);
     $("timer").textContent=[reste/3600|0,(reste%3600)/60|0,reste%60].map(x=>String(x).padStart(2,"0")).join(":");
     $("progress").style.width=(prog*100)+"%";
