@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Espace assureur — MVP</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#5d6b7a;--line:#dde2e8;--brand:#1f3a5f;--ok:#1d7a4d;--err:#a32020}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:#2b2b3a;color:#fff;padding:18px 16px}
+header div,main{max-width:880px;margin:0 auto}
+header h1{margin:0;font-size:20px}header p{margin:2px 0 0;opacity:.85;font-size:14px}
+main{padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+h2{margin:0 0 12px;font-size:18px}
+.fiche{background:var(--bg);border-radius:8px;padding:12px 14px;font-size:14px}.fiche span{color:var(--mute)}
+.kpi{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0}
+.kpi div{flex:1;min-width:150px;background:var(--bg);border-radius:8px;padding:12px}.kpi b{display:block;font-size:22px}
+.timer{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
+label{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+input{padding:10px;border:1px solid var(--line);border-radius:6px;font:inherit;width:180px}
+button{background:var(--brand);color:#fff;border:0;border-radius:6px;padding:11px 18px;font:inherit;cursor:pointer}
+button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.msg{margin-top:10px;font-size:14px}.err{color:var(--err)}.ok{color:var(--ok)}
+.note{font-size:13px;color:var(--mute)}.hidden{display:none}
+ul{padding-left:18px;margin:8px 0 0}
+</style>
+</head>
+<body>
+<header><div><h1>Espace assureur</h1><p>Consultez la fiche anonymisée et baissez votre prix pour remporter le client.</p></div></header>
+<main>
+<div class="card" id="vide">
+  <h2>Aucune enchère en cours</h2>
+  <p class="note">Ouvrez la page client (<code>index.html</code>) <b>dans le même navigateur</b>, lancez une enchère, puis revenez ici. Cette démo partage les données via le navigateur (localStorage) ; il faut donc servir les deux pages depuis le même site, par exemple avec <code>python3 -m http.server</code>.</p>
+</div>
+
+<div id="live" class="hidden">
+  <div class="card"><h2>Fiche client (anonymisée)</h2><div class="fiche" id="fiche"></div></div>
+  <div class="card">
+    <h2>Enchère</h2>
+    <div class="timer" id="timer">—</div>
+    <div class="kpi" id="kpi"></div>
+    <div class="row">
+      <div><label for="nom">Votre société</label><input id="nom" value="Votre Assurance"></div>
+      <div><label for="prix">Votre mensualité (€/mois)</label><input id="prix" type="number" step="0.01" min="1"></div>
+      <button id="envoyer" type="button">Envoyer l'offre</button>
+      <button id="battre" class="ghost" type="button">Battre la meilleure de 1 €</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <p class="note">Règle : un prix ne peut que baisser. Une fois l'enchère close, plus aucune offre n'est acceptée.</p>
+    <h2 style="margin-top:18px">Historique de vos offres</h2>
+    <ul id="histo"><li class="note">Aucune offre envoyée.</li></ul>
+  </div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const eur=(n,d=0)=>n.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:d,minimumFractionDigits:d});
+let mon=null, historique=[], dernierT0=null;
+function lire(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+
+function etat(){
+  const e=lire("mvp-enchere");
+  if(!e){$("vide").classList.remove("hidden");$("live").classList.add("hidden");return null}
+  $("vide").classList.add("hidden");$("live").classList.remove("hidden");
+  if(e.t0!==dernierT0){dernierT0=e.t0;historique=[];$("histo").innerHTML='<li class="note">Aucune offre envoyée.</li>';$("msg").textContent=""}
+  const p=e.profil, prog=Math.min(1,(Date.now()-e.t0)/e.dureeMs), clos=prog>=1;
+  const reste=Math.round((1-prog)*48*3600);
+  $("timer").textContent=clos?"Enchère close":[reste/3600|0,(reste%3600)/60|0,reste%60].map(x=>String(x).padStart(2,"0")).join(":");
+  $("fiche").innerHTML=`<span>Âge</span> ${p.age} ans · <span>Capital</span> ${eur(p.capital)} · <span>Durée</span> ${p.duree} ans<br>`+
+    `<span>Objet</span> ${p.objet} · <span>Fumeur</span> ${p.fumeur?"oui":"non"} · <span>Sport à risque</span> ${p.sport?"oui":"non"}<br>`+
+    `<span>Motif</span> ${p.motif||"non précisé"}`;
+  const mien=lire("mvp-offre-assureur");
+  mon=mien?mien.prix:null;
+  const concurrents=e.offres.map(o=>o.prix), meilleure=Math.min(...concurrents);
+  const rang=1+concurrents.filter(x=>x<(mon??Infinity)).length;
+  $("kpi").innerHTML=`<div>Meilleure offre concurrente<b>${eur(meilleure,2)}</b></div>`+
+    `<div>Référence banque<b>${eur(e.ref,2)}</b></div>`+
+    `<div>Votre rang<b>${mon==null?"—":rang+" / "+(concurrents.length+1)}</b></div>`;
+  $("envoyer").disabled=$("battre").disabled=clos;
+  if(clos){$("msg").className="msg err";$("msg").textContent="Enchère close : plus aucune offre n'est acceptée."}
+  return {e,meilleure,clos};
+}
+function envoyer(valeur){
+  const s=etat(); if(!s)return;
+  const msg=$("msg"); msg.className="msg err";
+  if(s.clos){msg.textContent="L'enchère est close.";return}
+  if(!(valeur>0)){msg.textContent="Saisissez un prix valide.";return}
+  if(mon!=null&&valeur>=mon){msg.textContent=`Refusé : votre prix actuel est ${eur(mon,2)}, il ne peut que baisser.`;return}
+  const nom=$("nom").value.trim()||"Votre Assurance";
+  const baisses=(lire("mvp-offre-assureur")?.baisses||0)+1;
+  localStorage.setItem("mvp-offre-assureur",JSON.stringify({nom,prix:valeur,baisses}));
+  historique.unshift(`${new Date().toLocaleTimeString("fr-FR")} — ${eur(valeur,2)}/mois (soit ${eur(valeur*s.e.mois)} sur la durée)`);
+  $("histo").innerHTML=historique.map(h=>`<li>${h}</li>`).join("");
+  msg.className="msg ok"; msg.textContent="Offre enregistrée : "+eur(valeur,2)+"/mois.";
+  $("prix").value=""; etat();
+}
+$("envoyer").onclick=()=>envoyer(+$("prix").value);
+$("battre").onclick=()=>{const s=etat(); if(s)envoyer(Math.floor((s.meilleure-1)*100)/100)};
+etat(); setInterval(etat,300);
+</script>
+</body>
+</html>
