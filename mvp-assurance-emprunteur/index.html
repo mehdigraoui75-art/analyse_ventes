@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enchères Emprunteur — MVP</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#5d6b7a;--line:#dde2e8;--brand:#1f3a5f;--ok:#1d7a4d;--warn:#b26a00}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--brand);color:#fff;padding:18px 16px}
+header div,main{max-width:880px;margin:0 auto}
+header h1{margin:0;font-size:20px}
+header p{margin:2px 0 0;opacity:.85;font-size:14px}
+main{padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+h2{margin:0 0 12px;font-size:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:14px;color:var(--mute);margin-bottom:4px}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff}
+.check{display:flex;gap:8px;align-items:center;font-size:15px;color:var(--ink)}
+.check input{width:auto}
+button{background:var(--brand);color:#fff;border:0;border-radius:6px;padding:12px 20px;font:inherit;cursor:pointer}
+button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+.note{font-size:13px;color:var(--mute)}
+.banner{background:#fff7e6;border:1px solid #f0d9a8;color:#6b4a00;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:18px}
+.hidden{display:none}
+.timer{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;background:var(--brand);width:0}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{font-size:13px;color:var(--mute);font-weight:600}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.best td{background:#eef7f1}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:var(--ok);color:#fff}
+.kpi{display:flex;gap:14px;flex-wrap:wrap}
+.kpi div{flex:1;min-width:150px;background:var(--bg);border-radius:8px;padding:12px}
+.kpi b{display:block;font-size:22px}
+.fiche{background:var(--bg);border-radius:8px;padding:12px 14px;font-size:14px}
+.fiche span{color:var(--mute)}
+</style>
+</head>
+<body>
+<header><div>
+<h1>Enchères Emprunteur</h1>
+<p>Faites baisser le prix de votre assurance de prêt : les assureurs s'affrontent pendant 48 h.</p>
+</div></header>
+
+<main>
+<div class="banner"><b>Démonstration.</b> Les assureurs sont fictifs et les offres sont simulées (les 48 h sont accélérées). Aucune donnée n'est envoyée : tout reste dans votre navigateur.</div>
+
+<section id="step1" class="card">
+<h2>1. Votre profil</h2>
+<form id="form" class="grid">
+  <div><label for="age">Âge</label><input id="age" type="number" min="18" max="75" value="35" required></div>
+  <div><label for="capital">Capital emprunté (€)</label><input id="capital" type="number" min="10000" step="1000" value="250000" required></div>
+  <div><label for="duree">Durée du prêt (années)</label><input id="duree" type="number" min="2" max="30" value="20" required></div>
+  <div><label for="objet">Objet du prêt</label>
+    <select id="objet"><option>Résidence principale</option><option>Investissement locatif</option><option>Résidence secondaire</option><option>Prêt travaux</option></select></div>
+  <div><label for="metier">Profession</label>
+    <select id="metier"><option value="0">Bureau / profession intellectuelle</option><option value="1">Profession manuelle ou déplacements</option><option value="2">Profession à risque (BTP, sécurité…)</option></select></div>
+  <div><label for="banque">Coût de l'assurance proposée par votre banque (€/mois, facultatif)</label><input id="banque" type="number" min="0" placeholder="ex. 130"></div>
+  <label class="check"><input id="fumeur" type="checkbox"> Fumeur</label>
+  <label class="check"><input id="sport" type="checkbox"> Sport à risque (plongée, alpinisme…)</label>
+  <div style="grid-column:1/-1"><label for="motif">Pourquoi cherchez-vous une autre assurance ? (visible des assureurs)</label>
+  <input id="motif" placeholder="ex. Réduire le coût total du crédit"></div>
+  <div style="grid-column:1/-1"><button type="submit">Lancer les enchères</button>
+  <p class="note">Ne saisissez aucune donnée de santé ni d'identité : cette démo n'en a pas besoin.</p></div>
+</form>
+</section>
+
+<section id="step2" class="hidden">
+<div class="card">
+  <h2>2. Fiche anonymisée envoyée aux assureurs</h2>
+  <div class="fiche" id="fiche"></div>
+</div>
+<div class="card">
+  <h2>3. Enchères en cours</h2>
+  <div class="timer" id="timer">48:00:00</div>
+  <div class="bar"><i id="progress"></i></div>
+  <p class="note" id="statut">Temps simulé restant avant la clôture.</p>
+  <div class="kpi" id="kpi"></div>
+  <table style="margin-top:14px">
+    <thead><tr><th>#</th><th>Assureur</th><th class="n">Mensualité</th><th class="n">Coût total</th><th class="n">Baisses</th></tr></thead>
+    <tbody id="offres"></tbody>
+  </table>
+  <p style="margin-top:14px"><button class="ghost" id="reset" type="button">Nouvelle simulation</button></p>
+</div>
+</section>
+</main>
+
+<script>
+const ASSUREURS=[
+  {nom:"Atlas Prévoyance",f:1.00,plancher:.62},
+  {nom:"Boréale Assurances",f:1.08,plancher:.58},
+  {nom:"Cèdre Mutuelle",f:.95,plancher:.66},
+  {nom:"Delta Protection",f:1.15,plancher:.52},
+  {nom:"Étoile Vie",f:1.04,plancher:.60}
+];
+const DUREE_SIM_S=45;               // 48 h simulées en 45 s
+const eur=n=>n.toLocaleString("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0});
+const $=id=>document.getElementById(id);
+
+// Taux annuel de référence (% du capital initial) : barème fictif, à remplacer par de vraies grilles.
+function tauxBase(p){
+  let t=0.10+0.006*p.age;
+  if(p.fumeur)t*=1.30;
+  if(p.sport)t*=1.15;
+  t*=[1,1.10,1.25][p.metier];
+  if(p.objet==="Investissement locatif")t*=1.05;
+  return t/100;
+}
+const mensualite=(p,taux)=>p.capital*taux/12;
+
+let timerId=null;
+
+function demarrer(p){
+  clearInterval(timerId);
+  const base=tauxBase(p), mois=p.duree*12;
+  const ref=p.banque>0?p.banque:mensualite(p,base*1.55);   // contrat groupe bancaire de référence
+  const encheres=ASSUREURS.map(a=>({
+    nom:a.nom,
+    depart:mensualite(p,base*a.f*1.25),
+    plancher:mensualite(p,base*a.f*a.plancher*1.25),
+    // instants (0-1) auxquels l'assureur baisse son prix
+    paliers:Array.from({length:3+Math.floor(Math.random()*4)},()=>Math.random()).sort(),
+    prix:0,baisses:0
+  }));
+  encheres.forEach(e=>e.prix=e.depart);
+
+  $("fiche").innerHTML=
+    `<span>Âge</span> ${p.age} ans · <span>Capital</span> ${eur(p.capital)} · <span>Durée</span> ${p.duree} ans<br>`+
+    `<span>Objet</span> ${p.objet} · <span>Fumeur</span> ${p.fumeur?"oui":"non"} · <span>Sport à risque</span> ${p.sport?"oui":"non"}<br>`+
+    `<span>Motif</span> ${p.motif||"non précisé"}`;
+  $("step1").classList.add("hidden");
+  $("step2").classList.remove("hidden");
+
+  const t0=Date.now();
+  function tick(){
+    const prog=Math.min(1,(Date.now()-t0)/(DUREE_SIM_S*1000));
+    encheres.forEach(e=>{
+      const n=e.paliers.filter(x=>x<=prog).length;
+      e.baisses=n;
+      // chaque palier rapproche le prix du plancher
+      const part=n/e.paliers.length;
+      e.prix=e.depart-(e.depart-e.plancher)*Math.pow(part,0.8);
+    });
+    const tri=[...encheres].sort((a,b)=>a.prix-b.prix);
+    const reste=Math.round((1-prog)*48*3600);
+    $("timer").textContent=[reste/3600|0,(reste%3600)/60|0,reste%60].map(x=>String(x).padStart(2,"0")).join(":");
+    $("progress").style.width=(prog*100)+"%";
+    const best=tri[0], eco=(ref-best.prix)*mois;
+    $("kpi").innerHTML=
+      `<div>Meilleure offre<b>${eur(best.prix)}/mois</b></div>`+
+      `<div>Référence banque<b>${eur(ref)}/mois</b></div>`+
+      `<div>Économie estimée<b style="color:var(--ok)">${eco>0?eur(eco):"—"}</b></div>`;
+    $("offres").innerHTML=tri.map((e,i)=>
+      `<tr class="${i===0?"best":""}"><td>${i+1}</td><td>${e.nom} ${i===0&&prog>=1?'<span class="tag">Gagnant</span>':""}</td>`+
+      `<td class="n">${eur(e.prix)}</td><td class="n">${eur(e.prix*mois)}</td><td class="n">${e.baisses}</td></tr>`).join("");
+    if(prog>=1){
+      clearInterval(timerId);
+      $("statut").textContent="Enchères closes. "+best.nom+" remporte l'offre ; en vrai, le client recevrait ici son devis à valider.";
+    }else $("statut").textContent="Temps simulé restant avant la clôture. Les prix ne peuvent que baisser.";
+  }
+  tick(); timerId=setInterval(tick,300);
+}
+
+$("form").addEventListener("submit",ev=>{
+  ev.preventDefault();
+  const p={age:+$("age").value,capital:+$("capital").value,duree:+$("duree").value,objet:$("objet").value,
+    metier:+$("metier").value,fumeur:$("fumeur").checked,sport:$("sport").checked,
+    banque:+$("banque").value||0,motif:$("motif").value.trim()};
+  try{localStorage.setItem("mvp-profil",JSON.stringify(p))}catch(e){}
+  demarrer(p);
+});
+$("reset").addEventListener("click",()=>{
+  clearInterval(timerId);
+  $("step2").classList.add("hidden");$("step1").classList.remove("hidden");
+});
+try{
+  const s=JSON.parse(localStorage.getItem("mvp-profil")||"null");
+  if(s){$("age").value=s.age;$("capital").value=s.capital;$("duree").value=s.duree;$("objet").value=s.objet;
+    $("metier").value=s.metier;$("fumeur").checked=s.fumeur;$("sport").checked=s.sport;
+    if(s.banque)$("banque").value=s.banque;$("motif").value=s.motif||""}
+}catch(e){}
+</script>
+</body>
+</html>
