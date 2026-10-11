@@ -165,6 +165,23 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-betw
     </div>
   </section>
 
+  <section id="prevision">
+    <h2>Prévision 2005</h2>
+    <p class="lead">Les données s'arrêtent en mai 2005 : estimation de juin à décembre avec trois méthodes simples, testées au préalable sur 2004.</p>
+    <div class="cards" style="grid-template-columns:1fr">
+      <div class="card">
+        <div class="ico"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+        <h3>6,16 M$ de chiffre d'affaires attendu en 2005 (+35 %)</h3>
+        <p>Prévision retenue : la moyenne de trois méthodes (taux de croissance, coefficients saisonniers, reconduction de 2004), dans une fourchette de 5,10 à 6,90 M$. Testée sur 2004, la moyenne n'a fait que 6 % d'erreur, contre ±20 % pour chaque méthode prise seule.</p>
+        <div class="btns">
+          <button class="btn" data-open="pdf-prev">Lire la note (3 pages)</button>
+          <a class="btn ghost" href="prevision_2005.pdf" download>Télécharger</a>
+          <a class="btn ghost" href="prevision_2005.py" download>Code .py</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Visionneuses (s'ouvrent au clic) -->
   <section class="viewer" id="pdf-etude" aria-label="Étude complète">
     <div class="viewer-bar"><b>Étude complète (PDF)</b>
@@ -176,6 +193,12 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-betw
     <div class="viewer-bar"><b>Rapport Power BI (export PDF)</b>
       <span class="btns"><a class="btn ghost" href="analyse_sample_sales_powerBI.pdf" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet</a><button class="close" data-close>Fermer</button></span></div>
     <iframe data-src="analyse_sample_sales_powerBI.pdf" title="Rapport Power BI"></iframe>
+  </section>
+
+  <section class="viewer" id="pdf-prev" aria-label="Prévision 2005">
+    <div class="viewer-bar"><b>Prévision du chiffre d'affaires 2005 (PDF)</b>
+      <span class="btns"><a class="btn ghost" href="prevision_2005.pdf" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet</a><a class="btn ghost" href="https://github.com/mehdigraoui75-art/analyse_ventes/blob/main/prevision_2005.py" target="_blank" rel="noopener">Code sur GitHub</a><button class="close" data-close>Fermer</button></span></div>
+    <iframe data-src="prevision_2005.pdf" title="Prévision 2005"></iframe>
   </section>
 
   <section class="viewer" id="code" aria-label="Code Python">
