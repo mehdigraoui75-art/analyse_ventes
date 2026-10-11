@@ -28,7 +28,7 @@ h1{margin:6px 0 8px;font-size:34px;line-height:1.2}
 .tag{border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:2px 10px;font-size:12px}
 
 /* Chiffres clés */
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:-22px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:-22px}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;box-shadow:0 2px 8px rgba(21,44,115,.06)}
 .kpi .v{font-size:28px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
 .kpi .v.neg{color:var(--bad)}
@@ -78,6 +78,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-betw
 
 @media (max-width:900px){
   .kpis,.cards{grid-template-columns:repeat(2,1fr)}
+  .kpi:last-child{grid-column:1/-1}
   .findings{grid-template-columns:1fr}
 }
 @media (max-width:520px){
@@ -109,6 +110,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-betw
     <div class="kpi"><div class="v">+31 %</div><div class="l">de croissance en 2004, +12 % début 2005</div></div>
     <div class="kpi"><div class="v">44 à 52 %</div><div class="l">du CA annuel réalisé au 4e trimestre</div></div>
     <div class="kpi"><div class="v neg">−8,1 %</div><div class="l">sous le prix catalogue sur les voitures classiques en 2005</div></div>
+    <div class="kpi"><div class="v">6,16 M$</div><div class="l">de chiffre d'affaires prévu en 2005, soit +35 % vs 2004</div></div>
   </div>
 
   <section>
