@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Le Manoir de Morteville — Huis clos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--x:50vw;--y:50vh;--r:280px;--blood:#8d0f0f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:#cdbfae;font-family:'IM Fell English',Georgia,serif;overflow:hidden;user-select:none}
+#game{position:fixed;inset:0;background:#000;cursor:none}
+#stage{position:absolute;inset:0}
+#stage svg{width:100%;height:100%;display:block}
+.hot{cursor:pointer;transition:filter .2s}
+.hot:hover{filter:brightness(1.5) drop-shadow(0 0 8px rgba(255,220,150,.5))}
+.pulse .hot{animation:pulse 1s ease-in-out 3}
+@keyframes pulse{50%{filter:brightness(2.2) drop-shadow(0 0 18px #ffd27a)}}
+.fl{transform-box:fill-box;transform-origin:50% 100%;animation:fl .18s infinite alternate}
+@keyframes fl{from{transform:scale(1,1) skewX(-3deg)}to{transform:scale(.88,1.15) skewX(4deg)}}
+#dark{position:absolute;inset:0;pointer-events:none;
+ background:radial-gradient(circle calc(var(--r)*.85) at var(--x) var(--y),rgba(255,190,110,.09),transparent 100%),
+ radial-gradient(circle var(--r) at var(--x) var(--y),rgba(0,0,0,0) 0%,rgba(0,0,0,.4) 42%,rgba(0,0,0,.955) 100%)}
+#vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 18vmin 6vmin #000}
+#grain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:overlay;opacity:.16;image-rendering:pixelated}
+#hover{position:fixed;left:var(--x);top:calc(var(--y) + 26px);transform:translateX(-50%);pointer-events:none;font-size:15px;color:#e8d9b8;text-shadow:0 0 6px #000,0 0 3px #000;opacity:0;transition:opacity .15s;z-index:5;white-space:nowrap;letter-spacing:1px}
+#cur{position:fixed;left:var(--x);top:var(--y);width:8px;height:8px;margin:-4px;border-radius:50%;background:rgba(255,230,180,.7);pointer-events:none;z-index:6;box-shadow:0 0 10px rgba(255,200,120,.7)}
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:12px 16px;pointer-events:none;z-index:8;gap:10px}
+#hud>*{pointer-events:auto}
+#inv{display:flex;gap:8px;min-width:90px;flex-wrap:wrap}
+.item{padding:4px 10px;border:1px solid #5b4a30;background:rgba(0,0,0,.6);font-size:14px;color:#e2cf9f}
+#slots{display:flex;gap:8px;align-items:center}
+.slot{width:34px;height:42px;border:1px solid #4a3a28;background:rgba(0,0,0,.6);display:grid;place-items:center;font:26px 'Creepster',serif;color:#b01818;text-shadow:0 0 8px #700}
+.slot.on{border-color:#a02020}
+#btns{display:flex;gap:8px}
+.ib{background:rgba(0,0,0,.65);color:#d8c7a2;border:1px solid #5b4a30;padding:6px 11px;font:15px 'IM Fell English',serif;cursor:pointer}
+.ib:hover{background:#2a1510}
+#room{position:absolute;left:16px;bottom:14px;font-size:14px;letter-spacing:3px;text-transform:uppercase;color:#6d5d48;z-index:8}
+#narr{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);width:min(780px,92vw);padding:12px 18px;background:rgba(0,0,0,.62);border-left:3px solid var(--blood);font-size:clamp(15px,2.1vw,19px);line-height:1.45;font-style:italic;color:#e1d3b6;z-index:8;min-height:28px;opacity:0;transition:opacity .4s;pointer-events:none}
+#narr.on{opacity:1}
+#fade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .4s;z-index:20}
+#fade.on{opacity:1}
+#scare{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:50;pointer-events:none}
+.shake{animation:shake .08s infinite}
+@keyframes shake{0%{transform:translate(4px,-3px)}25%{transform:translate(-5px,2px)}50%{transform:translate(3px,5px)}75%{transform:translate(-4px,-4px)}100%{transform:translate(2px,3px)}}
+#gl{position:absolute;inset:0;display:none;place-items:center;z-index:40;pointer-events:none;font:clamp(40px,10vw,130px) 'Creepster',serif;color:#c00;text-shadow:3px 0 #0ff,-3px 0 #f0f,0 0 30px #600;text-align:center;letter-spacing:6px;animation:shake .06s infinite}
+#blackout{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:30}
+.shadow{position:absolute;bottom:0;height:62vh;z-index:7;pointer-events:none;opacity:0;transition:opacity .5s;filter:blur(1.5px)}
+#modal{position:absolute;inset:0;background:rgba(0,0,0,.78);display:none;place-items:center;z-index:25;cursor:default}
+#modal.on{display:grid}
+#mbox{width:min(560px,92vw);max-height:90vh;overflow:auto;background:linear-gradient(#1b1411,#0f0b09);border:1px solid #5b4a30;box-shadow:0 0 60px #000,inset 0 0 40px rgba(0,0,0,.8);padding:22px 24px;text-align:center}
+#mbox h2{font:30px 'Creepster',serif;letter-spacing:2px;color:#b32020;margin:0 0 8px;font-weight:normal}
+#mbox p{line-height:1.5;margin:8px 0;color:#d6c7a6}
+#mbox .poem{font-style:italic;color:#e6d6b0;border-left:2px solid #6a1414;padding-left:14px;text-align:left}
+#mbox .cipher{font:24px monospace;letter-spacing:4px;color:#caa}
+.btn{background:#3b0c0c;color:#ecd9b6;border:1px solid #7b2020;padding:9px 20px;margin:8px 4px 0;font:17px 'IM Fell English',serif;cursor:pointer}
+.btn:hover{background:#5a1010}
+.btn.ghost{background:transparent;border-color:#4a3a28;color:#9d8c70}
+.wheels{display:flex;justify-content:center;gap:12px;margin:14px 0}
+.wh{display:flex;flex-direction:column;align-items:center;gap:4px}
+.wh button{background:#241812;color:#d6c7a6;border:1px solid #5b4a30;width:46px;height:30px;cursor:pointer;font-size:14px}
+.wh span{font:38px 'Creepster',serif;width:46px;text-align:center;color:#e8d3a0;background:#050303;border:1px solid #3a2c1c;padding:2px 0}
+#mbox input{background:#050303;border:1px solid #5b4a30;color:#f0e0bc;font:22px 'IM Fell English',serif;padding:9px 12px;width:80%;text-align:center;letter-spacing:3px;outline:none}
+.books{display:flex;justify-content:center;gap:10px;margin:16px 0;align-items:flex-end}
+.bk{width:46px;cursor:pointer;border:2px solid #000;box-shadow:inset -6px 0 8px rgba(0,0,0,.45);transition:transform .15s}
+.bk:hover{transform:translateY(-8px)}
+.bk.used{opacity:.25;pointer-events:none}
+.seq{display:flex;gap:6px;justify-content:center;min-height:30px}
+.seq i{width:22px;height:30px;border:1px solid #000}
+.msg{min-height:24px;color:#d86;font-style:italic}
+#jr .e{text-align:left;margin:10px 0;padding-bottom:8px;border-bottom:1px solid #2c211a}
+#jr b{color:#c9a56a}
+#intro,#end{position:fixed;inset:0;z-index:100;display:grid;place-items:center;text-align:center;background:radial-gradient(ellipse at 50% 40%,#2a0d0a 0%,#050202 70%);padding:20px;overflow:auto}
+#end{display:none;z-index:90;background:radial-gradient(ellipse at 50% 40%,#efe6d0 0%,#8d8576 80%);color:#1a1209}
+#end h1{color:#400}
+#intro .in,#end .in{max-width:640px}
+h1{font:clamp(44px,9vw,92px)/1 'Creepster',serif;font-weight:normal;color:#b01818;margin:0 0 6px;letter-spacing:3px;text-shadow:0 0 25px #600;animation:tf 5s infinite}
+@keyframes tf{0%,92%,96%,100%{opacity:1}93%{opacity:.2}94%{opacity:1}95%{opacity:.4}}
+.sub{letter-spacing:6px;text-transform:uppercase;font-size:13px;color:#8a7a62;margin-bottom:22px}
+.warn{border:1px solid #5a1a1a;background:rgba(40,0,0,.5);padding:12px 16px;font-size:15px;line-height:1.5;color:#e0b8a8;margin:0 0 18px;text-align:left}
+.opts{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;font-size:16px;margin-bottom:20px;color:#c9b99a;align-items:center}
+.opts select,.opts input[type=range]{accent-color:#a01818}
+.opts select{background:#120a08;color:#d8c7a2;border:1px solid #5b4a30;padding:4px;font:inherit}
+#start{font-size:22px;padding:14px 34px;border:1px solid #a02020;background:#2b0808;color:#f2dfc0;cursor:pointer;font-family:inherit;letter-spacing:3px;animation:pl 2.4s infinite}
+@keyframes pl{50%{box-shadow:0 0 30px #a0202090}}
+#end .btn{color:#fff}
+@media(max-width:700px){#hud{flex-wrap:wrap}#room{display:none}#narr{bottom:20px}}
+@media (hover:none){#game{cursor:default}#cur{display:none}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="stage"></div>
+  <div id="dark"></div>
+  <div id="vig"></div>
+  <canvas id="grain" width="200" height="120"></canvas>
+  <div id="hud">
+    <div id="inv"></div>
+    <div id="slots"></div>
+    <div id="btns"><button class="ib" id="bH">🔦 Aide</button><button class="ib" id="bJ">📖 Carnet</button><button class="ib" id="bS">🔊</button></div>
+  </div>
+  <div id="room"></div>
+  <div id="narr"></div>
+  <div id="blackout"></div>
+  <div id="gl"></div>
+  <div id="modal"><div id="mbox"></div></div>
+  <div id="fade"></div>
+  <canvas id="scare"></canvas>
+</div>
+<div id="hover"></div><div id="cur"></div>
+
+<div id="intro"><div class="in">
+  <h1>Le Manoir de Morteville</h1>
+  <div class="sub">Un huis clos · cinq énigmes · une seule sortie</div>
+  <div class="warn">⚠ <b>Avertissement.</b> Ce jeu contient des <b>images effrayantes qui surgissent à l'écran</b>, des <b>flashs lumineux</b> et des <b>cris soudains</b>. Déconseillé aux personnes photosensibles, épileptiques, cardiaques ou très sensibles. Jouez dans le noir, au casque… à vos risques.</div>
+  <div class="opts">
+    <label><input type="checkbox" id="oS" checked> Images qui sautent</label>
+    <label>Fréquence <select id="oI"><option value="leger">Légère</option><option value="normal" selected>Normale</option><option value="cauchemar">Cauchemar</option></select></label>
+    <label>Volume <input type="range" id="oV" min="0" max="100" value="80"></label>
+  </div>
+  <button id="start">ENTRER</button>
+  <p style="margin-top:22px;font-size:14px;color:#6d5d48">Promenez votre lampe avec la souris (ou le doigt). Cliquez sur ce qui vous semble suspect.</p>
+</div></div>
+
+<div id="end"><div class="in">
+  <h1 id="eT">Libre.</h1>
+  <p id="eP" style="font-size:19px;line-height:1.6"></p>
+  <button class="btn" onclick="location.reload()">Rejouer</button>
+</div></div>
+
+<script>
+'use strict';
+/* ================= utilitaires ================= */
+const $=s=>document.querySelector(s), G=$('#game');
+const rnd=(a,b)=>a+Math.random()*(b-a), pick=a=>a[Math.floor(Math.random()*a.length)];
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+const mul=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const easeOut=t=>1-Math.pow(1-t,3);
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ================= état ================= */
+const S={running:false,room:'hall',inv:[],letters:['','','','',''],flags:{},scares:true,intensity:'normal',tension:0,t0:0,journal:[],fails:0,seen:{}};
+const NAME='LUCIE';
+
+/* ================= audio (tout est synthétisé) ================= */
+const A={ctx:null,muted:false,vol:.8,
+init(){
+  if(this.ctx)return;
+  const c=this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+  this.master=c.createGain();this.master.gain.value=this.vol;
+  const comp=c.createDynamicsCompressor();this.master.connect(comp);comp.connect(c.destination);
+  this.out=c.createGain();this.out.connect(this.master);
+  const len=c.sampleRate*2.6,ir=c.createBuffer(2,len,c.sampleRate);
+  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3)}
+  const cv=c.createConvolver();cv.buffer=ir;const wet=c.createGain();wet.gain.value=.4;this.out.connect(cv);cv.connect(wet);wet.connect(this.master);
+  const nl=c.sampleRate*2,nb=this.nb=c.createBuffer(1,nl,c.sampleRate),nd=nb.getChannelData(0);
+  for(let i=0;i<nl;i++)nd[i]=Math.random()*2-1;
+  this.drone();
+},
+setVol(v){this.vol=v;if(this.master)this.master.gain.value=this.muted?0:v},
+mute(m){this.muted=m;if(this.master)this.master.gain.value=m?0:this.vol},
+curve(k){const n=1024,a=new Float32Array(n);for(let i=0;i<n;i++){const x=i*2/n-1;a[i]=(3+k)*x*20*(Math.PI/180)/(Math.PI+k*Math.abs(x))}return a},
+drone(){
+  const c=this.ctx,g=c.createGain();g.gain.value=.07;
+  const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=170;
+  const l=c.createOscillator();l.frequency.value=.07;const lg=c.createGain();lg.gain.value=70;l.connect(lg);lg.connect(lp.frequency);l.start();
+  [55,55.4,82.6].forEach((f,i)=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=f;const og=c.createGain();og.gain.value=i==2?.4:1;o.connect(og);og.connect(lp);o.start()});
+  lp.connect(g);g.connect(this.out);
+  const w=c.createBufferSource();w.buffer=this.nb;w.loop=true;const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=420;bp.Q.value=.7;
+  const wg=c.createGain();wg.gain.value=.03;const l2=c.createOscillator();l2.frequency.value=.13;const l2g=c.createGain();l2g.gain.value=.025;l2.connect(l2g);l2g.connect(wg.gain);l2.start();
+  w.connect(bp);bp.connect(wg);wg.connect(this.out);w.start();
+},
+N(dur,type,f,q,g,t0=0,fEnd,dest){
+  if(!this.ctx||this.muted)return;const c=this.ctx,t=c.currentTime+t0;
+  const s=c.createBufferSource();s.buffer=this.nb;s.loop=true;
+  const fl=c.createBiquadFilter();fl.type=type;fl.frequency.setValueAtTime(f,t);fl.Q.value=q;
+  if(fEnd)fl.frequency.exponentialRampToValueAtTime(fEnd,t+dur);
+  const gn=c.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+Math.min(.05,dur/3));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(fl);fl.connect(gn);gn.connect(dest||this.out);s.start(t);s.stop(t+dur+.05);
+},
+O(type,f0,f1,dur,g,t0=0){
+  if(!this.ctx||this.muted)return;const c=this.ctx,t=c.currentTime+t0;
+  const o=c.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  const gn=c.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+.01);gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(gn);gn.connect(this.out);o.start(t);o.stop(t+dur+.05);
+},
+beat(){this.O('sine',72,38,.16,.55);this.O('sine',64,34,.18,.4,.2)},
+knock(n=3){for(let i=0;i<n;i++){this.N(.12,'lowpass',320,1,.9,i*rnd(.22,.35));this.O('sine',95,45,.15,.5,i*.28)}},
+creak(){this.N(rnd(.9,1.8),'bandpass',rnd(250,400),14,.2,0,rnd(90,160));this.O('sawtooth',rnd(70,110),rnd(40,60),1.2,.03)},
+slam(){this.N(.5,'lowpass',240,1,1);this.O('sine',85,28,.6,.9)},
+steps(n=6){for(let i=0;i<n;i++)this.N(.09,'lowpass',280,1,.35,i*rnd(.42,.55))},
+whisper(){for(let i=0;i<5;i++)this.N(rnd(.15,.3),'bandpass',rnd(2200,4200),4,.1,i*rnd(.22,.35))},
+click(){this.N(.05,'highpass',3000,1,.08)},
+good(){[392,466,587].forEach((f,i)=>this.O('triangle',f,f*.998,.9,.05,i*.12))},
+bad(){this.O('sawtooth',160,120,.5,.09);this.O('sawtooth',169,126,.5,.09)},
+musicbox(){
+  const m=[659,784,988,880,784,659,740,659,587,659,784,622];
+  m.forEach((f,i)=>{this.O('sine',f*(i==11?.99:1),f*(i==11?.99:1),1.4,.05,i*.42);this.O('triangle',f*2,f*2,.6,.015,i*.42)});
+},
+scream(p=1,dur=1.5,kind='high',far=false){
+  if(!this.ctx||this.muted)return;const c=this.ctx,t=c.currentTime;
+  const out=c.createGain();out.gain.setValueAtTime(.0001,t);out.gain.exponentialRampToValueAtTime(.9*p,t+.04);out.gain.setValueAtTime(.9*p,t+dur*.62);out.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  const ws=c.createWaveShaper();ws.curve=this.curve(kind==='demon'?90:45);ws.oversample='2x';
+  const base=kind==='demon'?170:480,peak=kind==='demon'?430:1250;
+  const lfo=c.createOscillator();lfo.frequency.value=rnd(5.5,9);const lg=c.createGain();lg.gain.value=base*.06;lfo.connect(lg);
+  const mix=c.createGain();
+  [1,1.008,2.01].forEach((m,i)=>{
+    const o=c.createOscillator();o.type=i==2?'square':'sawtooth';
+    o.frequency.setValueAtTime(base*m,t);o.frequency.exponentialRampToValueAtTime(peak*m,t+.17);
+    o.frequency.exponentialRampToValueAtTime(peak*.72*m,t+dur*.6);o.frequency.exponentialRampToValueAtTime(base*.55*m,t+dur);
+    lg.connect(o.frequency);const g=c.createGain();g.gain.value=i==2?.1:.33;o.connect(g);g.connect(mix);o.start(t);o.stop(t+dur+.1)});
+  [[900,5],[2300,7],[3400,8]].forEach(([f,q],i)=>{
+    const b=c.createBiquadFilter();b.type='bandpass';b.frequency.setValueAtTime(f*.7,t);b.frequency.linearRampToValueAtTime(f*1.2,t+.25);b.Q.value=q;
+    const g=c.createGain();g.gain.value=[1,.8,.5][i];mix.connect(b);b.connect(g);g.connect(ws)});
+  const n=c.createBufferSource();n.buffer=this.nb;n.loop=true;const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=2600;const ng=c.createGain();ng.gain.value=.25;n.connect(hp);hp.connect(ng);ng.connect(ws);n.start(t);n.stop(t+dur+.1);
+  ws.connect(out);
+  if(far){const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1100;out.connect(lp);lp.connect(this.out)}else out.connect(this.out);
+  lfo.start(t);lfo.stop(t+dur+.1);
+  if(!far){this.O('sine',62,26,.8,.9);this.N(.35,'lowpass',500,1,.6)}
+}};
+
+/* ================= images d'horreur (dessinées en code) ================= */
+const SC=$('#scare'),sg=SC.getContext('2d');
+let scaring=false,lastScare=0;
+
+function hair(g,s,r,n,front){
+  g.strokeStyle='#050505';g.lineCap='round';
+  for(let i=0;i<n;i++){
+    const x=(r()-.5)*s*1.0,y0=-s*.55,w=s*(.008+r()*.02);
+    g.lineWidth=w;g.beginPath();g.moveTo(x*.7,y0+r()*s*.15);
+    const dx=(r()-.5)*s*.5;
+    g.bezierCurveTo(x+dx,-s*.1,x-dx,s*.3,x+(r()-.5)*s*.3,s*(front?.55+r()*.35:.9+r()*.3));g.stroke();
+  }
+}
+function drawFace(g,W,H,t,r,o){
+  const s=Math.min(W,H)*(.55+.62*easeOut(t));
+  g.fillStyle='#030000';g.fillRect(0,0,W,H);
+  const hl=g.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*.6);hl.addColorStop(0,'rgba(90,0,0,.55)');hl.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=hl;g.fillRect(0,0,W,H);
+  g.save();g.translate(W/2+(Math.random()-.5)*16,H/2+(Math.random()-.5)*16+H*.03);g.rotate(o.tilt+(Math.random()-.5)*.04);
+  hair(g,s,r,o.hair,false);
+  const gr=g.createRadialGradient(0,-s*.12,s*.04,0,0,s*.62);gr.addColorStop(0,o.skin[0]);gr.addColorStop(.6,o.skin[1]);gr.addColorStop(1,'#0b0d0a');
+  g.fillStyle=gr;g.beginPath();g.ellipse(0,0,s*.4,s*.53,0,0,7);g.fill();
+  g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(-s*.24,s*.1,s*.07,s*.2,.2,0,7);g.ellipse(s*.24,s*.1,s*.07,s*.2,-.2,0,7);g.fill();
+  g.strokeStyle='rgba(30,20,20,.7)';g.lineWidth=s*.004;
+  for(let i=0;i<9;i++){g.beginPath();let x=(r()-.5)*s*.6,y=(r()-.5)*s*.8;g.moveTo(x,y);for(let k=0;k<4;k++){x+=(r()-.5)*s*.1;y+=r()*s*.08;g.lineTo(x,y)}g.stroke()}
+  for(const sx of[-1,1]){
+    g.save();g.translate(sx*s*.16,-s*.1);g.rotate(sx*.18);
+    g.fillStyle='#000';g.beginPath();g.ellipse(0,0,s*(.075+.025*t),s*(.105+.03*t),0,0,7);g.fill();
+    g.fillStyle=o.eye;g.shadowColor=o.eye;g.shadowBlur=s*.04;g.beginPath();g.arc(0,s*.01,s*.012*(1+t*1.5),0,7);g.fill();g.shadowBlur=0;g.restore();
+    g.strokeStyle='rgba(130,0,0,.9)';g.lineWidth=s*.014;g.beginPath();g.moveTo(sx*s*.16,s*.0);g.bezierCurveTo(sx*s*.2,s*.12,sx*s*.14,s*.2,sx*s*.2,s*(.3+.2*t));g.stroke();
+  }
+  g.fillStyle='rgba(0,0,0,.75)';g.beginPath();g.ellipse(-s*.025,s*.08,s*.013,s*.03,0,0,7);g.ellipse(s*.025,s*.08,s*.013,s*.03,0,0,7);g.fill();
+  const mo=s*(.1+.25*Math.min(1,t*2.2)),my=s*.27;
+  g.fillStyle='#000';g.beginPath();g.ellipse(0,my,s*.155,mo,0,0,7);g.fill();
+  g.fillStyle='#cfc8aa';
+  for(let i=0;i<9;i++){const a=Math.PI+.25+i*(Math.PI-.5)/8,x=Math.cos(a)*s*.15,y=my+Math.sin(a)*mo;g.beginPath();g.moveTo(x-s*.012,y);g.lineTo(x+s*.012,y);g.lineTo(x,y+s*(.035+r()*.03));g.fill()}
+  for(let i=0;i<7;i++){const a=.35+i*(Math.PI-.7)/6,x=Math.cos(a)*s*.15,y=my+Math.sin(a)*mo;g.beginPath();g.moveTo(x-s*.012,y);g.lineTo(x+s*.012,y);g.lineTo(x,y-s*(.03+r()*.03));g.fill()}
+  g.strokeStyle='rgba(150,0,0,.85)';g.lineWidth=s*.012;g.beginPath();g.moveTo(-s*.05,my+mo);g.lineTo(-s*.055,my+mo+s*.2*t);g.moveTo(s*.07,my+mo);g.lineTo(s*.075,my+mo+s*.3*t);g.stroke();
+  if(o.front)hair(g,s,mul(77),o.front,true);
+  g.restore();
+}
+function drawEyes(g,W,H,t,r){
+  g.fillStyle='#000';g.fillRect(0,0,W,H);
+  const n=Math.floor(8+t*70);
+  for(let i=0;i<n;i++){
+    const x=r()*W,y=r()*H,s=(r()*.5+.3)*Math.min(W,H)*.06*(1+t);
+    if(r()<.07)continue;
+    g.fillStyle='#e8e4d0';g.shadowColor='#f33';g.shadowBlur=s*.8;
+    for(const dx of[-1,1]){g.beginPath();g.ellipse(x+dx*s*.9,y,s*.55,s*.28,0,0,7);g.fill()}
+    g.shadowBlur=0;g.fillStyle='#a00';
+    for(const dx of[-1,1]){g.beginPath();g.arc(x+dx*s*.9,y,s*.13,0,7);g.fill()}
+  }
+  const s=Math.min(W,H)*(.15+.45*easeOut(t));
+  for(const dx of[-1,1]){
+    g.save();g.translate(W/2+dx*s*.9,H/2);g.shadowColor='#f00';g.shadowBlur=s*.5;
+    g.fillStyle='#f2eee0';g.beginPath();g.ellipse(0,0,s*.7,s*.4,0,0,7);g.fill();g.shadowBlur=0;
+    g.fillStyle='#a8120f';g.beginPath();g.arc((Math.random()-.5)*8,0,s*.26,0,7);g.fill();
+    g.fillStyle='#000';g.beginPath();g.arc((Math.random()-.5)*8,0,s*.08*(1.4-t),0,7);g.fill();
+    g.strokeStyle='rgba(180,0,0,.7)';g.lineWidth=2;for(let i=0;i<14;i++){const a=r()*6.28;g.beginPath();g.moveTo(Math.cos(a)*s*.6,Math.sin(a)*s*.33);g.lineTo(Math.cos(a)*s*.3,Math.sin(a)*s*.16);g.stroke()}
+    g.restore();
+  }
+}
+function hand(g,x,y,s,rot){
+  g.save();g.translate(x,y);g.rotate(rot);g.beginPath();g.ellipse(0,0,s*.5,s*.6,0,0,7);g.fill();
+  [[-.42,-.5,-.35],[-.2,-.7,-.12],[.05,-.75,.02],[.3,-.68,.14],[.52,-.2,.9]].forEach(([fx,fy,a])=>{g.save();g.translate(fx*s,fy*s);g.rotate(a);g.beginPath();g.ellipse(0,0,s*.09,s*.3,0,0,7);g.fill();g.restore()});
+  g.restore();
+}
+function drawHands(g,W,H,t,r){
+  g.fillStyle='#0a0000';g.fillRect(0,0,W,H);
+  const n=Math.floor(3+t*16);
+  for(let i=0;i<n;i++){
+    const x=r()*W,y=r()*H,s=(r()*.5+.5)*Math.min(W,H)*.28;
+    g.fillStyle=`rgba(${120+r()*70|0},0,0,${.55+r()*.4})`;hand(g,x,y,s,(r()-.5)*1.2);
+    g.fillRect(x+(r()-.5)*s*.6,y,s*.05,s*(.6+r()*1.5));
+  }
+  const sz=Math.min(W*.2,H*.4)*(.6+.8*easeOut(t));
+  g.save();g.translate(W/2+(Math.random()-.5)*10,H/2+(Math.random()-.5)*10);g.font=`${sz}px Creepster, Impact, serif`;g.textAlign='center';g.textBaseline='middle';
+  g.shadowColor='#f00';g.shadowBlur=40;g.fillStyle='#d10000';g.fillText('SORS',0,0);g.shadowBlur=0;g.strokeStyle='#300';g.lineWidth=3;g.strokeText('SORS',0,0);g.restore();
+}
+function jumpScare(kind,opts={}){
+  if((!S.running&&!opts.force)||scaring)return;
+  if(!opts.force&&performance.now()-lastScare<14000)return;
+  scaring=true;lastScare=performance.now();
+  const sc=.72,W=SC.width=Math.floor(innerWidth*sc),H=SC.height=Math.floor(innerHeight*sc);
+  SC.style.display='block';SC.style.opacity=1;
+  kind=kind||pick(['face','face','eyes','girl','hands','girl']);
+  const seed=(Math.random()*1e9)|0,D=opts.dur||rnd(950,1500),t0=performance.now();
+  const sk=kind==='face'?'demon':'high';
+  A.scream(opts.power||1,D/1000+.35,sk);if(kind==='eyes'||kind==='hands')setTimeout(()=>A.scream(.5,.8,'high'),350);
+  if(!reduced)G.classList.add('shake');
+  if(navigator.vibrate)navigator.vibrate([180,40,260]);
+  S.tension=Math.min(1,S.tension+.35);
+  const cfg={
+    face:{tilt:0,hair:60,front:0,skin:['#d9ddcf','#8e968a'],eye:'#fff'},
+    girl:{tilt:rnd(-.35,.35),hair:260,front:90,skin:['#e8e6dc','#9c9d96'],eye:'#e22'},
+  };
+  (function frame(now){
+    const p=(now-t0)/D;
+    if(p>=1){SC.style.display='none';G.classList.remove('shake');scaring=false;return}
+    const r=mul(seed);
+    if(kind==='eyes')drawEyes(sg,W,H,p,r);
+    else if(kind==='hands')drawHands(sg,W,H,p,r);
+    else drawFace(sg,W,H,p,r,cfg[kind]);
+    // glitch : tranches décalées
+    for(let i=0;i<6;i++){if(Math.random()<.5){const y=Math.random()*H,h=rnd(6,H*.08);sg.drawImage(SC,0,y,W,h,rnd(-40,40),y,W,h)}}
+    // lignes de balayage + vignette rouge
+    sg.fillStyle='rgba(0,0,0,.16)';for(let y=0;y<H;y+=4)sg.fillRect(0,y,W,1);
+    const v=sg.createRadialGradient(W/2,H/2,H*.25,W/2,H/2,H*.85);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(60,0,0,.75)');sg.fillStyle=v;sg.fillRect(0,0,W,H);
+    // inversion rapide (une seule fois, brève)
+    if(!reduced&&p>.38&&p<.44){sg.globalCompositeOperation='difference';sg.fillStyle='#fff';sg.fillRect(0,0,W,H);sg.globalCompositeOperation='source-over'}
+    // flash blanc d'entrée
+    if(!reduced&&p<.07){sg.fillStyle=`rgba(255,255,255,${1-p/.07})`;sg.fillRect(0,0,W,H)}
+    if(p>.84)SC.style.opacity=(1-p)/.16;
+    requestAnimationFrame(frame);
+  })(performance.now());
+}
+
+/* ================= petits événements d'ambiance ================= */
+const GL_TXT=['ELLE EST ICI','DERRIÈRE TOI','NE REGARDE PAS','TU L\'AS RÉVEILLÉE','SORS','ELLE T\'ENTEND','PERSONNE NE SORT','JE TE VOIS'];
+function glitchText(t){
+  const e=$('#gl');e.textContent=t||pick(GL_TXT);e.style.display='grid';
+  setTimeout(()=>e.style.display='none',rnd(450,800));
+}
+function shadowFigure(){
+  const d=document.createElement('div');d.className='shadow';
+  const left=rnd(8,80);d.style.left=left+'%';
+  d.innerHTML='<svg viewBox="0 0 100 300" height="100%"><path d="M50 8c-14 0-20 12-18 26 1 9 6 15 6 22-18 6-30 22-30 60l8 120h14l4 60h12l2-60 2 60h12l4-60h14l8-120c0-38-12-54-30-60 0-7 5-13 6-22 2-14-4-26-18-26z" fill="#000"/><ellipse cx="43" cy="30" rx="3.2" ry="2.2" fill="#fff"/><ellipse cx="57" cy="30" rx="3.2" ry="2.2" fill="#fff"/></svg>';
+  G.appendChild(d);requestAnimationFrame(()=>d.style.opacity=.92);
+  A.whisper();
+  const kill=()=>{d.style.opacity=0;setTimeout(()=>d.remove(),600)};
+  setTimeout(kill,rnd(1100,1900));
+  const mv=e=>{if(Math.abs(e.clientX/innerWidth*100-left)<14){kill();A.creak();removeEventListener('pointermove',mv)}};
+  addEventListener('pointermove',mv);setTimeout(()=>removeEventListener('pointermove',mv),2500);
+}
+function blackout(){
+  const b=$('#blackout');b.style.transition='none';b.style.opacity=1;A.slam();
+  setTimeout(()=>{A.steps(4)},500);
+  setTimeout(()=>{b.style.transition='opacity .08s';b.style.opacity=.2},1400);
+  setTimeout(()=>{b.style.opacity=1},1500);
+  setTimeout(()=>{b.style.opacity=.4},1620);
+  setTimeout(()=>{b.style.transition='opacity 1s';b.style.opacity=0},1800);
+}
+const MINOR=[
+  ()=>A.creak(),()=>{A.whisper();glitchText()},()=>A.knock(),()=>shadowFigure(),
+  ()=>flickerLight(),()=>A.musicbox(),()=>A.slam(),()=>A.steps(),()=>{A.beat();setTimeout(()=>A.beat(),900)},
+  ()=>{say(pick(['Quelqu\'un respire derrière vous.','Un murmure, tout près de votre oreille…','Le sol craque à l\'étage. Il n\'y a pas d\'étage.','Il fait soudain plus froid.']));A.whisper()},
+  ()=>blackout()
+];
+let baseR=280;
+function flickerLight(){let n=0;const iv=setInterval(()=>{baseR=n%2?60:280;if(++n>8){clearInterval(iv);baseR=280}},90)}
+function schedule(){
+  const rng={leger:[60,110],normal:[32,70],cauchemar:[14,38]}[S.intensity];
+  setTimeout(()=>{if(S.running&&S.scares)jumpScare();schedule()},rnd(...rng)*1000);
+}
+function scheduleMinor(){setTimeout(()=>{if(S.running)pick(MINOR)();scheduleMinor()},rnd(9,22)*1000)}
+function scheduleDistant(){setTimeout(()=>{if(S.running&&!scaring){A.scream(.22,rnd(1.5,2.4),pick(['high','demon']),true);say(pick(['Un cri déchire la nuit, quelque part dans le manoir…','Quelqu\'un hurle. Très loin. Ou très près.']))}scheduleDistant()},rnd(38,85)*1000)}
+let lastMove=Date.now();
+setInterval(()=>{if(S.running&&Date.now()-lastMove>40000){lastMove=Date.now();glitchText('BOUGE.');A.whisper()}},5000);
+setInterval(()=>{if(S.running&&S.tension>.3)A.beat();S.tension=Math.max(0,S.tension-.03)},1000);
+
+/* ================= lampe torche, grain, yeux ================= */
+let px=innerWidth/2,py=innerHeight/2;
+addEventListener('pointermove',e=>{
+  px=e.clientX;py=e.clientY;lastMove=Date.now();
+  G.style.setProperty('--x',px+'px');document.documentElement.style.setProperty('--x',px+'px');document.documentElement.style.setProperty('--y',py+'px');
+  const dx=(px/innerWidth-.5)*9,dy=(py/innerHeight-.5)*7;
+  document.querySelectorAll('.pupil').forEach(p=>p.setAttribute('transform',`translate(${dx} ${dy})`));
+});
+setInterval(()=>{
+  let r=baseR*(1-S.tension*.35);r*=.95+Math.random()*.1;if(Math.random()<.015)r*=.5;
+  document.documentElement.style.setProperty('--r',Math.max(90,r*Math.min(1,Math.max(.55,innerWidth/1100)))+'px');
+},90);
+const gc=$('#grain'),gx=gc.getContext('2d');
+setInterval(()=>{const d=gx.createImageData(200,120);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}gx.putImageData(d,0,0)},80);
+
+/* ================= narration & modales ================= */
+let narrTimer,narrIv;
+function say(txt,ms=5200){
+  const n=$('#narr');clearInterval(narrIv);clearTimeout(narrTimer);n.classList.add('on');n.textContent='';let i=0;
+  narrIv=setInterval(()=>{n.textContent=txt.slice(0,++i);if(i>=txt.length)clearInterval(narrIv)},18);
+  narrTimer=setTimeout(()=>n.classList.remove('on'),ms+txt.length*18);
+}
+function openModal(html){$('#mbox').innerHTML=html;$('#modal').classList.add('on');document.querySelectorAll('#mbox .close').forEach(b=>b.onclick=closeModal)}
+function closeModal(){$('#modal').classList.remove('on')}
+addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+$('#modal').addEventListener('pointerdown',e=>{if(e.target.id==='modal')closeModal()});
+function note(title,text){if(!S.journal.find(j=>j.t===title))S.journal.push({t:title,x:text})}
+function journal(){
+  openModal(`<h2>Carnet</h2><div id="jr">${S.journal.length?S.journal.map(j=>`<div class="e"><b>${j.t}</b><br>${j.x}</div>`).join(''):'<p>Vos pages sont vides. Examinez la maison.</p>'}</div><button class="btn close">Fermer</button>`);
+}
+function updateHUD(){
+  $('#inv').innerHTML=S.inv.map(i=>`<div class="item">🗝 ${i}</div>`).join('');
+  $('#slots').innerHTML=S.letters.map(l=>`<div class="slot ${l?'on':''}">${l||'·'}</div>`).join('');
+}
+function wrong(msg){A.bad();S.fails++;S.tension=Math.min(1,S.tension+.25);if(Math.random()<.4&&S.scares)setTimeout(()=>jumpScare(),600);return msg}
+
+/* ================= décors (SVG) ================= */
+const DEFS=`<defs>
+<linearGradient id="wl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d231d"/><stop offset="1" stop-color="#16110e"/></linearGradient>
+<linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f302e"/><stop offset="1" stop-color="#151615"/></linearGradient>
+<radialGradient id="fg"><stop offset="0" stop-color="#ffd27a" stop-opacity=".9"/><stop offset="1" stop-color="#ff8a00" stop-opacity="0"/></radialGradient>
+<radialGradient id="mn"><stop offset="0" stop-color="#cfd8ff" stop-opacity=".7"/><stop offset="1" stop-color="#6070b0" stop-opacity="0"/></radialGradient>
+<filter id="tx"><feTurbulence type="fractalNoise" baseFrequency=".05 .8" numOctaves="3" seed="4"/><feColorMatrix type="saturate" values="0"/></filter>
+</defs>`;
+const wrap=(inner)=>`<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">${DEFS}${inner}</svg>`;
+const door=(x,y,w,h,id,n,extra='')=>`<g class="hot" data-id="${id}" data-n="${n}">
+<path d="M${x},${y+h}V${y+w/2}A${w/2},${w/2} 0 0 1 ${x+w},${y+w/2}V${y+h}Z" fill="#241711" stroke="#080504" stroke-width="7"/>
+<path d="M${x+14},${y+h}V${y+w/2}A${w/2-14},${w/2-14} 0 0 1 ${x+w-14},${y+w/2}V${y+h}Z" fill="#2f1e14" stroke="#120b07" stroke-width="3"/>
+<line x1="${x+w/2}" y1="${y+10}" x2="${x+w/2}" y2="${y+h}" stroke="#120b07" stroke-width="4"/>
+<circle cx="${x+w-30}" cy="${y+h*.55}" r="8" fill="#9a7b34"/>${extra}</g>`;
+const flame=(x,y,s=1,c='#ffc247')=>`<g><circle cx="${x}" cy="${y-8*s}" r="${46*s}" fill="url(#fg)"/><ellipse class="fl" cx="${x}" cy="${y-8*s}" rx="${6*s}" ry="${15*s}" fill="${c}"/></g>`;
+function shelf(x,y,w,h,seed){
+  const r=mul(seed);let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#1d130c" stroke="#090503" stroke-width="5"/>`;
+  const rows=Math.floor(h/110);
+  for(let k=0;k<rows;k++){const by=y+(k+1)*(h/rows);let bx=x+10;
+    while(bx<x+w-20){const bw=12+r()*18,bh=60+r()*38,col=`hsl(${r()*40|0},${15+r()*30|0}%,${10+r()*14|0}%)`;s+=`<rect x="${bx}" y="${by-bh-6}" width="${bw}" height="${bh}" fill="${col}" stroke="#050302"/>`;bx+=bw+2}
+    s+=`<rect x="${x}" y="${by-6}" width="${w}" height="10" fill="#2c1c10"/>`}
+  return s;
+}
+const WALLTEX=`<rect width="1600" height="900" filter="url(#tx)" opacity=".1"/>`;
+
+const ROOMS={
+hall:{name:'Hall d\'entrée',enter:'Le hall est glacé. La porte d\'entrée s\'est verrouillée toute seule dans votre dos. Vous n\'êtes plus seul(e).',svg(){
+  let floor='';for(let i=-8;i<=24;i++)floor+=`<line x1="${800+(i*100-800)*.25}" y1="720" x2="${i*100}" y2="900" stroke="#080605" stroke-width="3"/>`;
+  return wrap(`<rect width="1600" height="900" fill="url(#wl)"/>${WALLTEX}
+  <rect y="560" width="1600" height="165" fill="#1a1210"/><rect y="555" width="1600" height="10" fill="#2e2018"/>
+  <rect y="720" width="1600" height="180" fill="#100b09"/>${floor}<line x1="0" y1="780" x2="1600" y2="780" stroke="#080605" stroke-width="3"/>
+  ${door(40,330,150,390,'toLib','Porte de la bibliothèque')}
+  ${door(1410,330,150,390,'toDin','Porte de la salle à manger')}
+  <g class="hot" data-id="clock" data-n="Horloge comtoise"><rect x="236" y="240" width="140" height="490" fill="#2c1b10" stroke="#0a0604" stroke-width="5"/><rect x="226" y="228" width="160" height="26" fill="#3a2314"/>
+    <circle cx="306" cy="340" r="54" fill="#cfc7a8" stroke="#6a5326" stroke-width="6"/>
+    <g transform="translate(306 340)"><line y2="-26" stroke="#111" stroke-width="5" transform="rotate(113.5)"/><line y2="-40" stroke="#111" stroke-width="3" transform="rotate(282)"/></g>
+    <rect x="266" y="440" width="80" height="230" fill="#0d0705"/><line x1="306" y1="440" x2="306" y2="640" stroke="#7a6128" stroke-width="3"/><circle cx="306" cy="640" r="20" fill="#8a6c2a"/></g>
+  <g class="hot" data-id="portrait" data-n="Portrait"><rect x="520" y="150" width="230" height="310" fill="#4b381c" stroke="#120c05" stroke-width="7"/><rect x="540" y="170" width="190" height="270" fill="#0f0c0a"/>
+    <path d="M635 330c-55 0-75 40-80 110h160c-5-70-25-110-80-110z" fill="#cfcabb"/><ellipse cx="635" cy="268" rx="46" ry="58" fill="#b9b3a2"/>
+    <path d="M585 262c-8-60 20-85 52-85s62 25 52 85c-10-30-20-45-52-45s-42 15-52 45z" fill="#0a0806"/><path d="M588 280c-12 70-4 120 4 150h-22c-12-40-12-110 8-165z" fill="#0a0806"/><path d="M682 280c12 70 4 120-4 150h22c12-40 12-110-8-165z" fill="#0a0806"/>
+    <ellipse cx="616" cy="268" rx="12" ry="9" fill="#eee"/><ellipse cx="656" cy="268" rx="12" ry="9" fill="#eee"/>
+    <circle class="pupil" cx="616" cy="268" r="4.5" fill="#000"/><circle class="pupil" cx="656" cy="268" r="4.5" fill="#000"/>
+    <path d="M618 302q18 10 36 0" stroke="#4a1010" stroke-width="3" fill="none"/>
+    <rect x="590" y="468" width="90" height="22" fill="#a98a3c" stroke="#2a1e08"/></g>
+  <g class="hot" data-id="chest" data-n="Coffre cadenassé"><rect x="810" y="650" width="150" height="90" fill="#35210f" stroke="#0a0604" stroke-width="5"/><path d="M810 650q75-45 150 0z" fill="#432a14" stroke="#0a0604" stroke-width="5"/><rect x="873" y="672" width="24" height="30" fill="#9a7b34"/><circle cx="885" cy="685" r="4" fill="#000"/></g>
+  <g class="hot" data-id="front" data-n="Porte d'entrée"><path d="M1030 720V500A100 100 0 0 1 1230 500V720Z" fill="#1f130c" stroke="#070403" stroke-width="8"/><path d="M1048 720V505A82 82 0 0 1 1212 505V720Z" fill="#2a1a10"/>
+    <line x1="1130" y1="410" x2="1130" y2="720" stroke="#0a0604" stroke-width="5"/>
+    <path d="M1040 520L1220 650M1220 520L1040 650" stroke="#555" stroke-width="9"/><rect x="1105" y="570" width="50" height="46" fill="#6d0e0e" stroke="#200"/><circle cx="1130" cy="590" r="7" fill="#000"/></g>
+  <g class="hot" data-id="trap" data-n="Trappe"><polygon points="610,790 790,790 815,865 585,865" fill="#1f140b" stroke="#050302" stroke-width="5"/><line x1="700" y1="790" x2="700" y2="865" stroke="#050302" stroke-width="3"/><circle cx="700" cy="828" r="11" fill="none" stroke="#8a6c2a" stroke-width="5"/></g>
+  ${flame(520,180,0)}`)}},
+lib:{name:'Bibliothèque',enter:'Des milliers de livres moisis. Sur le bureau, une bougie brûle encore… quelqu\'un était là il y a un instant.',svg(){
+  const cols=['#8b1a1a','#121212','#d8d2bd','#2f5a2f','#b8902f'];
+  return wrap(`<rect width="1600" height="900" fill="url(#wl)"/>${WALLTEX}
+  ${shelf(30,70,520,640,1)}${shelf(1050,70,520,640,2)}${shelf(570,70,460,230,3)}
+  <rect y="720" width="1600" height="180" fill="#100b09"/>
+  <g class="hot" data-id="books" data-n="Étagère aux cinq livres"><rect x="590" y="330" width="420" height="190" fill="#1d130c" stroke="#090503" stroke-width="5"/><rect x="590" y="500" width="420" height="14" fill="#2c1c10"/>
+   ${cols.map((c,i)=>`<rect x="${680+i*46}" y="${375+(i%2)*8}" width="38" height="${125-(i%2)*8}" fill="${c}" stroke="#000" stroke-width="2"/>`).join('')}</g>
+  <circle cx="800" cy="610" r="120" fill="url(#mn)" opacity=".3"/>
+  <g class="hot" data-id="desk" data-n="Bureau"><rect x="150" y="610" width="360" height="26" fill="#3a2314" stroke="#0a0604" stroke-width="4"/><rect x="170" y="636" width="22" height="110" fill="#2c1b10"/><rect x="470" y="636" width="22" height="110" fill="#2c1b10"/>
+   <path d="M230 610l50-26 50 26zM330 610l50-26 50 26z" fill="#d9d1b8" stroke="#555"/><rect x="450" y="570" width="14" height="40" fill="#cfc7a8"/>${flame(457,566,.8)}</g>
+  <g class="hot" data-id="skull" data-n="Crâne"><ellipse cx="400" cy="588" rx="22" ry="22" fill="#d8d2bd"/><rect x="390" y="602" width="20" height="14" fill="#d8d2bd"/><circle cx="392" cy="586" r="5" fill="#000"/><circle cx="408" cy="586" r="5" fill="#000"/></g>
+  <g><rect x="1180" y="120" width="140" height="220" rx="70" fill="#0a0d18" stroke="#050505" stroke-width="8"/><circle cx="1250" cy="200" r="50" fill="#cfd8ff" opacity=".7"/><circle cx="1250" cy="200" r="180" fill="url(#mn)"/><path d="M1180 230h140M1250 120v220" stroke="#050505" stroke-width="6"/></g>
+  <g class="hot" data-id="toHall" data-n="Retour au hall"><path d="M1400 760V500A80 80 0 0 1 1560 500V760Z" fill="#241711" stroke="#080504" stroke-width="7"/><circle cx="1410" cy="640" r="8" fill="#9a7b34"/></g>`)}},
+din:{name:'Salle à manger',enter:'Une table dressée pour cinq convives. Les assiettes sont pleines d\'une chose noire et encore tiède.',svg(){
+  return wrap(`<rect width="1600" height="900" fill="url(#wl)"/>${WALLTEX}
+  <rect y="720" width="1600" height="180" fill="#100b09"/>
+  <g class="hot" data-id="painting" data-n="Tableau de famille"><rect x="300" y="110" width="360" height="250" fill="#4b381c" stroke="#120c05" stroke-width="7"/><rect x="318" y="128" width="324" height="214" fill="#15100c"/>
+   ${[0,1,2,3].map(i=>`<ellipse cx="${375+i*72}" cy="${210}" rx="22" ry="28" fill="#6b655a"/><path d="M${352+i*72} 238h46v90h-46z" fill="#2a2420"/><path d="M${360+i*72} 195l30 30M${390+i*72} 195l-30 30" stroke="#3a0505" stroke-width="5"/>`).join('')}</g>
+  <g class="hot" data-id="cabinet" data-n="Buffet verrouillé"><rect x="1150" y="360" width="330" height="380" fill="#2c1b10" stroke="#0a0604" stroke-width="6"/><rect x="1170" y="385" width="140" height="330" fill="#241710" stroke="#0a0604" stroke-width="3"/><rect x="1320" y="385" width="140" height="330" fill="#241710" stroke="#0a0604" stroke-width="3"/>
+   <rect x="1294" y="520" width="32" height="44" rx="6" fill="#8a6c2a"/><rect x="1302" y="490" width="16" height="32" rx="8" fill="none" stroke="#8a6c2a" stroke-width="5"/></g>
+  <g class="hot" data-id="table" data-n="Table dressée"><polygon points="360,600 1090,600 1160,690 290,690" fill="#3a2314" stroke="#0a0604" stroke-width="5"/><rect x="330" y="690" width="26" height="90" fill="#2c1b10"/><rect x="1094" y="690" width="26" height="90" fill="#2c1b10"/>
+   ${[0,1,2,3,4].map(i=>`<ellipse cx="${450+i*140}" cy="640" rx="46" ry="12" fill="#9a968a"/><ellipse cx="${450+i*140}" cy="638" rx="30" ry="7" fill="#150505"/>`).join('')}</g>
+  <g class="hot" data-id="candle" data-n="Chandelier"><rect x="715" y="540" width="12" height="62" fill="#8a6c2a"/><path d="M670 540h112" stroke="#8a6c2a" stroke-width="6"/>${[690,721,752].map(x=>`<rect x="${x-4}" y="515" width="8" height="26" fill="#d8d2bd"/>${flame(x,512,.7)}`).join('')}</g>
+  <g><rect x="780" y="110" width="180" height="270" rx="90" fill="#0a0d18" stroke="#050505" stroke-width="8"/><circle cx="870" cy="240" r="170" fill="url(#mn)" opacity=".6"/></g>
+  <g class="hot" data-id="toHall" data-n="Retour au hall"><path d="M40 760V500A75 75 0 0 1 190 500V760Z" fill="#241711" stroke="#080504" stroke-width="7"/><circle cx="170" cy="640" r="8" fill="#9a7b34"/></g>`)}},
+cave:{name:'Cave',enter:'L\'air sent la terre et la mort. Les murs suintent. Des griffures couvrent la pierre… de l\'intérieur.',svg(){
+  let br='';const r=mul(9);for(let y=0;y<9;y++)for(let x=0;x<17;x++){br+=`<rect x="${x*100-(y%2)*50}" y="${y*100}" width="96" height="46" fill="hsl(40,4%,${14+r()*8|0}%)" stroke="#070707" stroke-width="3"/>`}
+  return wrap(`<rect width="1600" height="900" fill="url(#st)"/>${br}<rect y="760" width="1600" height="140" fill="#0c0d0c"/>
+  <g class="hot" data-id="toHall" data-n="Escalier vers le hall"><polygon points="40,280 240,280 240,760 40,760" fill="#050505"/>${[0,1,2,3,4,5].map(i=>`<rect x="${40+i*30}" y="${700-i*70}" width="${200-i*30}" height="${70}" fill="#1c1c1b" stroke="#000" stroke-width="3"/>`).join('')}</g>
+  <g class="hot" data-id="slab" data-n="Dalle gravée"><rect x="430" y="250" width="380" height="330" fill="#262725" stroke="#050505" stroke-width="7"/>${[0,1,2,3,4].map(i=>`<path d="M${470+i*5} ${300+i*45}h${200+(i%3)*30}" stroke="#5a0b0b" stroke-width="6" stroke-linecap="round" stroke-dasharray="${14+i*3} 8"/>`).join('')}</g>
+  <g class="hot" data-id="crypt" data-n="Porte de fer"><rect x="1120" y="300" width="230" height="460" fill="#161718" stroke="#050505" stroke-width="8"/>${[0,1,2,3,4,5].map(i=>`<line x1="${1145+i*38}" y1="310" x2="${1145+i*38}" y2="750" stroke="#2c2e30" stroke-width="9"/>`).join('')}<circle cx="1235" cy="520" r="22" fill="#2c2e30" stroke="#050505" stroke-width="4"/></g>
+  <g class="hot" data-id="barrel" data-n="Tonneaux"><ellipse cx="920" cy="690" rx="70" ry="22" fill="#2c1b10"/><rect x="850" y="590" width="140" height="100" fill="#3a2314" stroke="#0a0604" stroke-width="4"/><ellipse cx="920" cy="590" rx="70" ry="22" fill="#4b3018" stroke="#0a0604" stroke-width="3"/></g>
+  <path d="M1000 0v300" stroke="#222" stroke-width="5" stroke-dasharray="12 6"/>`)}},
+crypt:{name:'Crypte',enter:'Quatre bougies éteintes sur un autel. Un cercueil entrouvert. Et sur le mur, un message dans une langue qui n\'est pas faite pour les vivants.',svg(){
+  const cs=[['rouge','#c01818'],['noir','#555'],['vert','#2fa046'],['bleu','#2a60d8']];
+  return wrap(`<rect width="1600" height="900" fill="url(#st)"/>${WALLTEX}
+  <path d="M0 900V300Q800-120 1600 300V900Z" fill="#0d0e0d" opacity=".5"/><rect y="760" width="1600" height="140" fill="#0a0a0a"/>
+  <g class="hot" data-id="wall" data-n="Inscription murale"><rect x="140" y="200" width="420" height="260" fill="#222" stroke="#050505" stroke-width="7"/><text x="350" y="340" text-anchor="middle" font-size="26" fill="#9a8a70" font-family="monospace">YHUW URXJH EOHX QRLU</text></g>
+  <g><rect x="640" y="600" width="320" height="30" fill="#2b2b2b" stroke="#050505" stroke-width="5"/><rect x="660" y="630" width="280" height="130" fill="#1b1b1b" stroke="#050505" stroke-width="5"/></g>
+  ${cs.map(([n,c],i)=>`<g class="hot" data-id="can" data-c="${n}" data-n="Bougie ${n}"><rect x="${690+i*70}" y="540" width="22" height="62" fill="${c}" stroke="#000" stroke-width="2"/><g class="lit" data-c="${n}" style="display:none"><circle cx="${701+i*70}" cy="524" r="52" fill="${c}" opacity=".45"/><ellipse class="fl" cx="${701+i*70}" cy="524" rx="7" ry="16" fill="#fff6d0"/></g></g>`).join('')}
+  <g class="hot" data-id="coffin" data-n="Cercueil"><polygon points="1100,640 1440,600 1480,740 1130,780" fill="#2c1b10" stroke="#0a0604" stroke-width="5"/><polygon points="1110,646 1440,608 1450,625 1115,664" fill="#050202"/><path d="M1180 700l20-30" stroke="#8a6c2a" stroke-width="3"/></g>
+  <g class="hot" data-id="toCave" data-n="Retour à la cave"><path d="M40 760V460A80 80 0 0 1 200 460V760Z" fill="#050505" stroke="#222" stroke-width="7"/></g>`)}}
+};
+
+/* ================= navigation ================= */
+async function go(room,silent){
+  const f=$('#fade');f.classList.add('on');if(!silent)A.creak();await wait(420);
+  S.room=room;$('#stage').innerHTML=ROOMS[room].svg();$('#room').textContent=ROOMS[room].name;
+  if(room==='crypt')S.flags.order.forEach(c=>{const l=document.querySelector(`.lit[data-c="${c}"]`);l&&(l.style.display='')});
+  f.classList.remove('on');
+  if(!S.seen[room]){S.seen[room]=1;say(ROOMS[room].enter,6500);
+    if(room==='cave')setTimeout(()=>jumpScare('eyes'),2800);
+    if(room==='crypt')setTimeout(()=>A.knock(2),2500);}
+}
+$('#stage').addEventListener('click',e=>{
+  const h=e.target.closest('.hot');if(!h)return;A.click();const id=h.dataset.id;(ACT[id]||(()=>{}))(h);
+});
+$('#stage').addEventListener('pointerover',e=>{const h=e.target.closest('.hot'),t=$('#hover');if(h){t.textContent=h.dataset.n;t.style.opacity=1}else t.style.opacity=0});
+
+/* ================= énigmes ================= */
+function lockUI(len,title,msg,answer,onOK){
+  const v=Array(len).fill(0);
+  openModal(`<h2>${title}</h2><p>${msg}</p><div class="wheels">${v.map((_,i)=>`<div class="wh"><button data-i="${i}" data-d="1">▲</button><span id="w${i}">0</span><button data-i="${i}" data-d="-1">▼</button></div>`).join('')}</div><div class="msg" id="mm"></div><button class="btn" id="ok">Essayer</button><button class="btn ghost close">Fermer</button>`);
+  document.querySelectorAll('.wh button').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;v[i]=(v[i]+ +b.dataset.d+10)%10;$('#w'+i).textContent=v[i];A.click()});
+  $('#ok').onclick=()=>{if(v.join('')===answer){closeModal();A.good();onOK()}else{$('#mm').textContent=wrong('Ça ne s\'ouvre pas…');}};
+}
+function textUI(title,msg,ok,onOK,fail){
+  openModal(`<h2>${title}</h2><p>${msg}</p><input id="ti" autocomplete="off" spellcheck="false"><div class="msg" id="mm"></div><button class="btn" id="ok">Répondre</button><button class="btn ghost close">Fermer</button>`);
+  const go=()=>{const v=norm($('#ti').value);if(ok.includes(v)){closeModal();A.good();onOK()}else{$('#mm').textContent=wrong(fail||'Rien ne se passe. Quelque chose rit dans le noir.');}};
+  $('#ok').onclick=go;$('#ti').onkeydown=e=>{if(e.key==='Enter')go()};setTimeout(()=>$('#ti').focus(),50);
+}
+function giveLetter(i){S.letters[i]=NAME[i];updateHUD()}
+function checkTrapKey(){return S.inv.includes('Clé de la cave')}
+
+const BOOKS=[['rouge','#8b1a1a'],['noir','#151515'],['blanc','#d8d2bd'],['vert','#2f5a2f'],['or','#b8902f']];
+const BOOK_ORDER=['rouge','noir','blanc','vert','or'];
+function booksUI(){
+  if(S.flags.books){say('L\'étagère est vide. Le compartiment secret est ouvert.');return}
+  let seq=[];
+  const draw=()=>{
+    openModal(`<h2>Les cinq livres</h2><p>Cinq livres de reliures différentes sont posés de travers. Quelque chose cloche dans leur ordre.</p>
+    <div class="books">${BOOKS.map(([n,c],i)=>`<div class="bk ${seq.includes(n)?'used':''}" data-n="${n}" style="background:${c};height:${120+(i%2)*14}px"></div>`).join('')}</div>
+    <div class="seq">${seq.map(n=>`<i style="background:${BOOKS.find(b=>b[0]===n)[1]}"></i>`).join('')}</div><div class="msg" id="mm"></div>
+    <button class="btn ghost" id="rs">Recommencer</button><button class="btn ghost close">Fermer</button>`);
+    document.querySelectorAll('.bk').forEach(b=>b.onclick=()=>{A.click();seq.push(b.dataset.n);
+      if(seq.length<5)return draw();
+      if(seq.join()===BOOK_ORDER.join()){closeModal();A.good();A.knock(2);S.flags.books=true;S.inv.push('Clé de la cave');giveLetter(0);updateHUD();
+        note('Clé de la cave','Trouvée dans un compartiment derrière les livres. Une lettre y est gravée : « L ».');
+        say('Un déclic. Un compartiment s\'ouvre : une clé rouillée, et une lettre gravée dans le bois — « L ».',7000)}
+      else{seq=[];draw();$('#mm').textContent=wrong('Les livres se remettent en désordre d\'eux-mêmes…')}});
+    $('#rs').onclick=()=>{seq=[];draw()};
+  };draw();
+}
+const CIPHER=['vert','rouge','bleu','noir'];
+S.flags.order=[];
+const ACT={
+toLib(){go('lib')},toDin(){go('din')},toHall(){go('hall')},toCave(){go('cave')},
+clock(){note('Horloge','Arrêtée à 3h47. Gravé sur le cadran : « Quand l\'heure s\'arrête, la mort commence. »');say('L\'horloge est figée à 3h47. Gravé sur le cadran : « Quand l\'heure s\'arrête, la mort commence. »');A.O('sine',50,40,1.2,.2)},
+portrait(){note('Portrait','Une jeune femme aux yeux trop grands. Plaque : « Ma fille chérie — 1887 – 1911 ». Ses yeux vous suivent.');say('« Ma fille chérie — 1887 – 1911. » Ses yeux vous suivent. Ils ont cligné, non ?');A.whisper()},
+chest(){
+  if(S.flags.chest){say('Le coffre est vide, à part une odeur de terre.');return}
+  lockUI(4,'Coffre cadenassé','Une plaque cuivrée : « Le jour où elle est venue au monde. »','1887',()=>{S.flags.chest=true;giveLetter(4);note('Coffre','Une lettre dans une boîte à musique : « E ».');say('Le coffre cède. Une boîte à musique, et une lettre gravée sous le couvercle — « E ». Elle joue seule, lentement…',7000);A.musicbox()});
+},
+front(){
+  if(S.letters.join('')!==NAME&&!S.flags.nameKnown){}
+  textUI('Porte d\'entrée','Cinq lettres sont gravées dans le bois. Quelqu\'un derrière la porte attend qu\'on prononce son nom.',[norm(NAME)],finish,'Ce n\'est pas son nom. Elle n\'aime pas qu\'on se trompe.');
+},
+trap(){
+  if(!checkTrapKey()){say('La trappe est fermée à clé. Il doit y avoir une clé quelque part, dans une pièce où l\'on lit.');A.knock(2);return}
+  S.inv=S.inv.filter(i=>i!=='Clé de la cave');updateHUD();A.slam();say('La clé tourne. Quelque chose, en bas, a bougé.');go('cave');
+},
+books(){booksUI()},
+desk(){note('Poème (bureau)','« Le sang d\'abord, puis la nuit. Puis l\'os, que le temps blanchit. Puis la mousse des tombeaux. Et pour finir, l\'or du flambeau. »');
+  openModal(`<h2>Un poème tremblé</h2><p class="poem">« Le sang d'abord, puis la nuit.<br>Puis l'os, que le temps blanchit.<br>Puis la mousse des tombeaux.<br>Et pour finir, l'or du flambeau. »</p><p style="font-size:14px;color:#8a7a62">(Ajouté à votre carnet)</p><button class="btn close">Fermer</button>`)},
+skull(){say('Un crâne. Sa mâchoire s\'est refermée quand vous avez détourné les yeux.');A.creak()},
+painting(){say('Une famille de quatre personnes. Tous les visages ont été grattés. Sauf sur la plaque : « Famille Morteville ».');},
+table(){say('Cinq couverts. Une assiette porte, tracé au doigt dans la suie : « ELLE A FAIM ».');setTimeout(()=>glitchText('ELLE A FAIM'),900)},
+candle(){say('Les flammes se couchent toutes ensemble, comme sous un souffle. Mais les fenêtres sont fermées.');A.whisper()},
+cabinet(){
+  if(S.flags.cabinet){say('Le buffet est ouvert et vide. Ça sent le sang séché.');return}
+  lockUI(4,'Buffet verrouillé','Un cadenas à quatre chiffres. Rien d\'écrit… sauf une trace de doigts sur le métal, comme si quelqu\'un tournait les molettes tous les soirs à la même heure.','0347',()=>{
+    S.flags.cabinet=true;giveLetter(1);
+    note('Buffet','Un médaillon marqué « U » et un mot : « Dans la crypte, César garde la lumière. Trois pas en arrière. »');
+    say('Le cadenas tombe. Dans le buffet : un médaillon gravé d\'un « U » et un mot : « Dans la crypte, César garde la lumière. Trois pas en arrière. »',9000);
+    setTimeout(()=>{blackout();setTimeout(()=>jumpScare('girl'),2200)},3500)});
+},
+slab(){
+  if(S.flags.riddle){say('Les griffures ont cessé. Un souffle froid s\'échappe de la pierre.');return}
+  textUI('La dalle gravée','« Je naquis de ta voix mais je ne t\'appartiens pas. Je te réponds sans t\'avoir jamais entendu. Je meurs dans le silence. Qui suis-je ? »',['echo','lecho'],()=>{
+    S.flags.riddle=true;giveLetter(2);note('Dalle de la cave','Énigme résolue — une lettre est apparue dans la pierre : « C ». La porte de fer s\'est déverrouillée.');
+    say('La pierre murmure « …o… » puis se fend. Une lettre apparaît, en sang frais : « C ». Au fond, la porte de fer grince.',8000);A.creak();setTimeout(()=>jumpScare('face'),3000)});
+},
+barrel(){say('Dans le tonneau : des dents. Des centaines. Certaines semblent encore humides.');A.knock(1)},
+crypt(){
+  if(!S.flags.riddle){say('La porte de fer est verrouillée. La dalle gravée, peut-être ?');A.knock(2);return}
+  A.slam();go('crypt');
+},
+wall(){
+  note('Mur de la crypte','Inscription codée : « YHUW URXJH EOHX QRLU » (4 mots). Indice du buffet : « Trois pas en arrière. »');
+  openModal(`<h2>Inscription murale</h2><p>Une écriture gravée à même la pierre :</p><p class="cipher">YHUW URXJH<br>EOHX QRLU</p><p style="font-size:14px;color:#8a7a62">Quatre mots… quatre bougies sur l'autel.</p><button class="btn close">Fermer</button>`);
+},
+can(h){
+  if(S.flags.crypt)return;const c=h.dataset.c;
+  if(S.flags.order.includes(c))return;
+  S.flags.order.push(c);document.querySelector(`.lit[data-c="${c}"]`).style.display='';A.O('triangle',440,430,.5,.05);
+  const i=S.flags.order.length-1;
+  if(S.flags.order[i]!==CIPHER[i]){
+    A.bad();document.querySelectorAll('.lit').forEach(l=>l.style.display='none');S.flags.order=[];wrong();
+    say('Un souffle éteint toutes les bougies d\'un coup. Dans l\'obscurité, quelque chose a ri.');A.whisper();if(S.scares)setTimeout(()=>jumpScare(),900);return;
+  }
+  if(S.flags.order.length===4){S.flags.crypt=true;giveLetter(3);A.good();note('Autel','Les bougies allumées dans l\'ordre du message ont révélé une lettre : « I ».');
+    say('Les quatre flammes se rejoignent. Sur l\'autel, une lettre apparaît dans la cire : « I ». Il vous manque désormais… son nom.',8000);setTimeout(()=>jumpScare('hands'),3500)}
+},
+coffin(){
+  if(!S.flags.cof){S.flags.cof=1;say('Le couvercle glisse de quelques centimètres. Dans le cercueil : une robe blanche. Elle est encore chaude.');A.slam();setTimeout(()=>jumpScare('girl',{power:1.1}),1500)}
+  else say('Vous n\'osez plus y toucher.');
+}};
+
+/* ================= aide ================= */
+function hint(){
+  const f=S.flags;let h;
+  if(!f.books)h='Les lettres sont gravées dans les énigmes. Commencez par la bibliothèque : le poème du bureau explique l\'ordre des livres.';
+  else if(!f.cabinet)h='L\'horloge du hall est arrêtée sur une heure précise. Dans la salle à manger, un buffet a un cadenas à quatre chiffres.';
+  else if(!f.riddle)h='La clé ouvre la trappe du hall. En bas, la dalle gravée pose une énigme : qui répond sans jamais t\'avoir entendu ?';
+  else if(!f.crypt)h='Dans la crypte, décalez chaque lettre de trois rangs en arrière (Y→V…). Les mots sont des couleurs. Allumez les bougies dans cet ordre.';
+  else if(!f.chest)h='Le portrait du hall donne deux dates. Le coffre veut le jour où elle est venue au monde.';
+  else h='Vous avez les 5 lettres, dans l\'ordre de leur emplacement. Prononcez son nom devant la porte d\'entrée.';
+  say(h,7000);const st=$('#stage');st.classList.add('pulse');setTimeout(()=>st.classList.remove('pulse'),3200);
+}
+
+/* ================= fin ================= */
+async function finish(){
+  S.running=false;closeModal();blackout();A.whisper();await wait(1900);
+  say('« Merci… »',2500);A.whisper();await wait(2400);
+  jumpScare('girl',{force:true,power:1.3,dur:2000});await wait(2300);
+  const sec=Math.round((Date.now()-S.t0)/1000),m=Math.floor(sec/60);
+  $('#eP').innerHTML=`Lucie Morteville repose enfin. La porte s'ouvre sur l'aube.<br>Vous avez survécu en <b>${m} min ${sec%60} s</b>, avec <b>${S.fails}</b> erreur${S.fails>1?'s':''}.<br><br><i>Mais dans le rétroviseur de la voiture, sur la banquette arrière…</i>`;
+  $('#end').style.display='grid';
+  if(S.scares)setTimeout(()=>{jumpScare('face',{force:true,power:1.2})},9000);
+}
+
+/* ================= démarrage ================= */
+$('#start').onclick=async()=>{
+  S.scares=$('#oS').checked;S.intensity=$('#oI').value;A.vol=$('#oV').value/100;A.init();A.setVol(A.vol);
+  $('#intro').style.display='none';S.running=true;S.t0=Date.now();updateHUD();
+  await go('hall',true);A.slam();say('Votre voiture est tombée en panne devant le manoir de Morteville. Vous avez frappé. La porte s\'est ouverte… puis refermée à clé. Trouvez comment sortir.',9000);
+  if(S.scares)schedule();scheduleMinor();scheduleDistant();
+};
+$('#bH').onclick=hint;$('#bJ').onclick=journal;
+$('#bS').onclick=()=>{A.mute(!A.muted);$('#bS').textContent=A.muted?'🔇':'🔊'};
+window.__g={S,ACT,jumpScare,go,A,finish,glitchText,shadowFigure,blackout};
+</script>
+</body>
+</html>
